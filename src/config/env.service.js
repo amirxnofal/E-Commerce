@@ -12,6 +12,7 @@ const saltRound = Number(process.env.SALT_ROUND);
 const googleAppEmail = process.env.GOOGLE_APP_EMAIL;
 const googleAppPassword = process.env.GOOGLE_APP_PASSWORD;
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const redisUrl = process.env.REDIS_URL;
 
 export const env = {
     port,
@@ -23,5 +24,6 @@ export const env = {
     googleAppEmail,
     googleAppPassword,
     googleClientId,
-    serverUrl
+    serverUrl,
+    redisUrl,
 };

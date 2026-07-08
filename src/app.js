@@ -12,13 +12,23 @@ import userRouter from "./modules/users/user.route.js";
 import productRouter from "./modules/products/products.route.js";
 import categoryRouter from "./modules/categories/category.route.js";
 import cartRouter from "./modules/cart/cart.route.js";
+import { RedisConnection } from "./database/redis/redis.js";
+import * as R from "./database/redis/redis.service.js";
 
 export const bootstrap = async () => {
     const app = express();
     app.use(express.json());
 
     //* Database Connection
-    DatabaseConnection();
+    await DatabaseConnection();
+    await RedisConnection();
+
+    //! -------------- Start Test Redis methods --------------
+    const setTest = await R.set({ key: "test_01", value: 1234, ttl: 60 });
+    const getTest = await R.get("test_01");
+    console.log(setTest);
+    console.log(getTest);
+    //! -------------- End Test Redis methods --------------
 
     //* Check Server health
     app.get("/check-health", (req, res) => {
