@@ -4,6 +4,7 @@ import { Validation } from "../../common/middleware/validation.middleware.js";
 import * as sch from "../../modules/auth/auth.validation.js";
 import { upload } from "../../common/middleware/multer.middleware.js";
 import { Auth } from "../../common/middleware/auth.middleware.js";
+import { authLimit } from "../../common/middleware/rateLimit.middleware.js";
 
 const router = Router();
 //* Register Route
@@ -11,17 +12,18 @@ router.post(
     "/register",
     upload.single("profileImage"),
     Validation(sch.registerSchema),
+    authLimit,
     c.Register,
 );
 
 //* Login Route
-router.post("/login", Validation(sch.loginSchema), c.Login);
+router.post("/login", Validation(sch.loginSchema), authLimit, c.Login);
 
 //* Verify email Route
 router.post("/verify-email", Validation(sch.verifyEmailSchema), c.Verify);
 
 //* Google login Route
-router.post("/google-login", c.google);
+router.post("/google-login", authLimit, c.google);
 
 //* Refresh Token Route
 router.post("/refresh-token", c.Refresh_Token);
@@ -30,6 +32,7 @@ router.post("/refresh-token", c.Refresh_Token);
 router.post(
     "/forgot-password",
     Validation(sch.forgetPasswordSchema),
+    authLimit,
     c.Forgot_Password,
 );
 
