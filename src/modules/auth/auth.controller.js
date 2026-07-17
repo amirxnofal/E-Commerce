@@ -1,7 +1,6 @@
 import { SuccessResponse } from "../../common/responses/success.response.js";
 import * as s from "./auth.service.js";
 
-
 //* Register Controller
 export const Register = async (req, res, next) => {
     try {
@@ -27,7 +26,7 @@ export const Login = async (req, res, next) => {
             status: 200,
             message: "Login success",
             data: {
-                user: result.user,
+                user: result.isExist,
                 accessToken: result.token.accessToken,
                 refreshToken: result.token.refreshToken,
             },
@@ -66,6 +65,7 @@ export const google = async (req, res, next) => {
                 user: result.user,
                 accessToken: result.token.accessToken,
                 refreshToken: result.token.refreshToken,
+                isNewUser: result.isNewUser,
             },
         });
     } catch (error) {
@@ -113,6 +113,38 @@ export const Forgot_Password = async (req, res, next) => {
 export const Reset_Password = async (req, res, next) => {
     try {
         const result = await s.resetPassword(req.body);
+        return SuccessResponse({
+            res,
+            status: 200,
+            message: "Success",
+            data: result.data,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+//!-----------------------------------------------------------------------------!//
+//* Resend OTP  Controller
+export const Resend_OTP = async (req, res, next) => {
+    try {
+        const result = await s.resendOtp(req.body.email);
+        return SuccessResponse({
+            res,
+            status: 200,
+            message: "Success",
+            data: result.data,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+//!-----------------------------------------------------------------------------!//
+//* logout  Controller
+export const Logout = async (req, res, next) => {
+    try {
+        const result = await s.logout(req.user._id, req.body.token);
         return SuccessResponse({
             res,
             status: 200,

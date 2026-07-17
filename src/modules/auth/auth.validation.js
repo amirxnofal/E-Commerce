@@ -49,6 +49,7 @@ export const resetPasswordSchema = Joi.object({
         .min(8)
         .pattern(
             /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/,
-        ),
+        )
+        .required(),
     otp: Joi.string().length(6).required(),
 });

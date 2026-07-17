@@ -3,6 +3,7 @@ import * as c from "./auth.controller.js";
 import { Validation } from "../../common/middleware/validation.middleware.js";
 import * as sch from "../../modules/auth/auth.validation.js";
 import { upload } from "../../common/middleware/multer.middleware.js";
+import { Auth } from "../../common/middleware/auth.middleware.js";
 
 const router = Router();
 //* Register Route
@@ -40,9 +41,9 @@ router.post(
 );
 
 //* Resend OTP Route
-// router.post("/resend-otp", c.google);
+router.post("/resend-otp", c.Resend_OTP);
 
 //* Logout Route  ( Disable refresh token )
-// router.post("/logout", c.disable);
+router.post("/logout", Auth, c.Logout);
 
 export default router;

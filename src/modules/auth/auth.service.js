@@ -37,7 +37,7 @@ export const register = async (data, file) => {
     });
 
     if (!mailSend.accepted.includes(email))
-        return e.InternalServerError({
+        e.InternalServerError({
             message: "Failed to send email",
         });
 
@@ -85,8 +85,8 @@ export const verifyEmail = async (data) => {
 
     const hashedOTP = await redis.get(`otp:${isExist._id}`);
 
-    const isMatched = await hash.CompareText(otp, isExist.otp);
-    if (!isMatched) e.BadRequestException({ message: "Wrong OTP" });
+    const isMatched = await hash.CompareText(otp, hashedOTP);
+    if (!isMatched) e.BadRequestException({ message: "Invalid otp" });
 
     isExist.isVerified = true;
     isExist.status = "active";
@@ -114,7 +114,7 @@ export const login = async (data, host) => {
 
     if (isExist.status !== "active")
         e.ForbiddenException({
-            message: "Account is inactive",
+            message: "Account is inactive or deleted",
         });
 
     const token = await GenerateToken(isExist._id, isExist.role, host);
@@ -139,6 +139,7 @@ export const googleLogin = async (data, host) => {
         e.BadRequestException({ message: "Google email not verified" });
 
     let user = await UserModel.findOne({ email: payload.email });
+    let isNewUser = false;
 
     if (!user) {
         user = await UserModel.create({
@@ -146,15 +147,19 @@ export const googleLogin = async (data, host) => {
             lName: payload.family_name || "",
             email: payload.email,
             isVerified: payload.email_verified,
-            profileImage: payload.picture,
+            profileImage: {
+                secure_url: payload.picture,
+                public_id: `google_${payload.sub}`,
+            },
             authProvider: "google",
             status: "active",
         });
+        isNewUser = true;
     }
 
     const token = await GenerateToken(user._id, user.role, host);
 
-    return { token, user };
+    return { token, user, isNewUser };
 };
 
 //!-----------------------------------------------------------------------------!//
@@ -170,7 +175,7 @@ export const forgotPassword = async (data) => {
     const { email } = data;
 
     const isExist = await UserModel.findOne({ email });
-    if (!isExist) e.NotFoundException({ message: "Email not found!" });
+    if (!isExist) return { data: "If the email exists, an OTP has been sent" };
 
     const otp = OTP();
     const hashedOtp = await hash.HashText(otp);
@@ -180,11 +185,15 @@ export const forgotPassword = async (data) => {
         subject: "Use it to reset pasword",
         otp,
     });
+
     if (!mail.accepted.includes(email))
         e.ForbiddenException({ message: "Falied send OTP" });
-    console.log("From Forget Password Service: ", otp);
-    isExist.otp = hashedOtp;
-    await isExist.save();
+
+    await redis.set({
+        key: `otp:${isExist._id}`,
+        value: hashedOtp,
+        ttl: 5 * 60,
+    });
 
     return { data: "otp sent ,check email" };
 };
@@ -197,15 +206,65 @@ export const resetPassword = async (data) => {
     const isExist = await UserModel.findOne({ email });
     if (!isExist) e.NotFoundException({ message: "Email not found!" });
 
-    const isMatched = await hash.CompareText(otp, isExist.otp);
-    if (!isMatched) e.BadRequestException({ message: "Invalid otp!" });
+    const hashedOTP = await redis.get(`otp:${isExist._id}`);
+
+    const isMatched = await hash.CompareText(otp, hashedOTP);
+    if (!isMatched)
+        e.BadRequestException({ message: "OTP expired or invalid" });
 
     const hashedPassword = await hash.HashText(newPassword);
 
     isExist.password = hashedPassword;
-    isExist.otp = undefined;
+    await redis.del(`otp:${isExist._id}`);
 
     await isExist.save();
 
     return { data: "Password reset" };
+};
+
+//!-----------------------------------------------------------------------------!//
+//* Resend OTP Service
+export const resendOtp = async (email) => {
+    const user = await UserModel.findOne({ email });
+    if (!user || user.status === "deleted")
+        e.NotFoundException({ message: "User not found" });
+
+    if (user.isVerified)
+        e.BadRequestException({ message: "Email is already verified" });
+
+    const otp = OTP();
+    const hashedOTP = await hash.HashText(otp);
+
+    const mailSend = await SendEmail({
+        to: email,
+        subject: "Dont share this code, just use it to verify you account",
+        otp,
+    });
+    if (!mailSend.accepted.includes(email))
+        e.BadRequestException({ message: "Failed to send OTP" });
+
+    await redis.set({
+        key: `otp:${user._id}`,
+        value: hashedOTP,
+        ttl: 5 * 60,
+    });
+
+    return { data: "OTP Sent" };
+};
+
+//!-----------------------------------------------------------------------------!//
+//* Logout Service
+export const logout = async (userId, token) => {
+    const user = await UserModel.findById(userId);
+    if (!user || user.status === "deleted")
+        e.NotFoundException({ message: "User not found" });
+
+    const revoked = await redis.createRevokeToken(user._id, token);
+    await redis.set({
+        key: revoked,
+        value: 1,
+        ttl: 60 * 60 * 24 * 365,
+    });
+
+    return { data: "Logged out" };
 };
