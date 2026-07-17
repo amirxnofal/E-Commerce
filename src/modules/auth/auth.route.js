@@ -1,14 +1,14 @@
 import { Router } from "express";
 import * as c from "./auth.controller.js";
 import { Validation } from "../../common/middleware/validation.middleware.js";
-import { uploadUser } from "../../common/middleware/multer.middleware.js";
 import * as sch from "../../modules/auth/auth.validation.js";
+import { upload } from "../../common/middleware/multer.middleware.js";
 
 const router = Router();
 //* Register Route
 router.post(
     "/register",
-    uploadUser.single("profileImage"),
+    upload.single("profileImage"),
     Validation(sch.registerSchema),
     c.Register,
 );
