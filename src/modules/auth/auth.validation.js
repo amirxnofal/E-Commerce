@@ -17,7 +17,7 @@ export const registerSchema = Joi.object({
             "string.pattern.base":
                 "Password must contain at least one letter, one number and one special character",
         }),
-    address: Joi.array().optional(),
+    address: Joi.string().optional().trim(),
 });
 
 export const loginSchema = Joi.object({

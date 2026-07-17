@@ -1,4 +1,8 @@
 import mongoose from "mongoose";
+import {
+    defaultPublicId,
+    defaultSecureUrl,
+} from "../../common/Constant/cloudinary.constant.js";
 
 const userSchema = mongoose.Schema(
     {
@@ -39,7 +43,6 @@ const userSchema = mongoose.Schema(
             type: Boolean,
             default: false,
         },
-        otp: String,
         role: {
             type: String,
             enum: ["user", "seller", "admin"],
@@ -50,7 +53,16 @@ const userSchema = mongoose.Schema(
             enum: ["active", "inactive", "deleted"],
             default: "inactive",
         },
-        profileImage: String,
+        profileImage: {
+            public_id: {
+                type: String,
+                default: defaultPublicId,
+            },
+            secure_url: {
+                type: String,
+                default: defaultSecureUrl,
+            },
+        },
         address: [String],
     },
     { timestamps: true },
@@ -59,13 +71,6 @@ userSchema.set("toJSON", {
     transform: (doc, ret) => {
         delete ret.password;
         delete ret.otp;
-        delete ret.__v;
-        delete ret.authProvider;
-        delete ret.isVerified;
-        delete ret.status;
-        delete ret.role;
-        delete ret.createdAt;
-        delete ret.updatedAt;
         return ret;
     },
 });
