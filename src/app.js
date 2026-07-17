@@ -23,13 +23,6 @@ export const bootstrap = async () => {
     await DatabaseConnection();
     await RedisConnection();
 
-    //! -------------- Start Test Redis methods --------------
-    const setTest = await R.set({ key: "test_01", value: 1234, ttl: 60 });
-    const getTest = await R.get("test_01");
-    console.log(setTest);
-    console.log(getTest);
-    //! -------------- End Test Redis methods --------------
-
     //* Check Server health
     app.get("/check-health", (req, res) => {
         res.json({ message: "Server is healthy..." });
