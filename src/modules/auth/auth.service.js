@@ -65,19 +65,10 @@ export const register = async (data, file) => {
             `users/${user._id}`,
         );
 
-        const oldImage = {
-            secure_url: user.profileImage.secure_url,
-            public_id: user.profileImage.public_id,
-        };
-
         user.profileImage = {
             secure_url: uploadResult.secure_url,
             public_id: uploadResult.public_id,
         };
-
-        if (oldImage.public_id != defaultPublicId) {
-            await cloudinary.uploader.destroy(oldImage.public_id);
-        }
     }
 
     await user.save();
@@ -100,7 +91,7 @@ export const verifyEmail = async (data) => {
     isExist.isVerified = true;
     isExist.status = "active";
     redis.del(`otp:${isExist._id}`);
-    
+
     await isExist.save();
 
     return isExist;
