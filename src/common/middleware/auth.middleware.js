@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import * as error from "../responses/error.response.js";
 import { env } from "../../config/env.service.js";
 import { UserModel } from "../../database/models/user.model.js";
+import { set } from "../../database/redis/redis.service.js";
 
 export const Auth = async (req, res, next) => {
     try {
@@ -15,6 +16,16 @@ export const Auth = async (req, res, next) => {
 
         const token = authHeader.split(" ")[1];
         const decoded = jwt.verify(token, env.secretKey);
+
+        if (decoded?.jti) {
+            const isRevoked = await get(`revoked:access:${decoded.jti}`);
+            if (isRevoked)
+                next(
+                    error.UnAuthorizedException({
+                        message: "Token has been revoked",
+                    }),
+                );
+        }
 
         const user = await UserModel.findById(decoded._id);
 
