@@ -36,13 +36,11 @@ export const reGenerateAccessToken = async (refreshToken, host) => {
         const decode = jwt.verify(token, env.refreshSecretKey);
         if (!decode) error.UnAuthorizedException();
 
-        const isRevoked = await get(`revoked:refersh:${decode.jti}`);
+        const isRevoked = await get(`revoked:refresh:${decode.jti}`);
         if (isRevoked)
-            next(
-                error.UnAuthorizedException({
-                    message: "Refresh token has been revoked",
-                }),
-            );
+            error.UnAuthorizedException({
+                message: "Refresh token has been revoked",
+            });
 
         const newAccessJti = randomUUID();
 
