@@ -44,6 +44,6 @@ router.post(
 router.post("/resend-otp", c.Resend_OTP);
 
 //* Logout Route  ( Disable refresh token )
-router.post("/logout", Auth, c.Logout);
+router.post("/logout", Auth, Validation(sch.logoutSchema), c.Logout);
 
 export default router;

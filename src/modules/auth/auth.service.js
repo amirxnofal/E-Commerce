@@ -255,7 +255,11 @@ export const resendOtp = async (email) => {
 
 //!-----------------------------------------------------------------------------!//
 //* Logout Service
-export const logout = async (userId, accessToken, refreshToken) => {
+export const logout = async (userId, req) => {
+    const authHeader = req.headers.authorization;
+    const accessToken = authHeader?.split(" ")[1];
+    const { refreshToken } = req.body;
+
     const user = await UserModel.findById(userId);
     if (!user || user.status === "deleted")
         e.NotFoundException({ message: "User not found" });

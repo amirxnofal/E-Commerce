@@ -144,7 +144,8 @@ export const Resend_OTP = async (req, res, next) => {
 //* logout  Controller
 export const Logout = async (req, res, next) => {
     try {
-        const result = await s.logout(req.user._id, req.body.token);
+        const result = await s.logout(req.user._id, req);
+
         return SuccessResponse({
             res,
             status: 200,

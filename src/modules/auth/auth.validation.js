@@ -53,3 +53,7 @@ export const resetPasswordSchema = Joi.object({
         .required(),
     otp: Joi.string().length(6).required(),
 });
+
+export const logoutSchema = Joi.object({
+    refreshToken: Joi.string().required(),
+});
