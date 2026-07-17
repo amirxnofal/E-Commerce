@@ -16,6 +16,7 @@ import {
     defaultSecureUrl,
 } from "../../common/Constant/cloudinary.constant.js";
 import * as redis from "../../database/redis/redis.service.js";
+import jwt from "jsonwebtoken";
 
 //!-----------------------------------------------------------------------------!//
 //* Register Service
@@ -254,17 +255,38 @@ export const resendOtp = async (email) => {
 
 //!-----------------------------------------------------------------------------!//
 //* Logout Service
-export const logout = async (userId, token) => {
+export const logout = async (userId, accessToken, refreshToken) => {
     const user = await UserModel.findById(userId);
     if (!user || user.status === "deleted")
         e.NotFoundException({ message: "User not found" });
 
-    const revoked = await redis.createRevokeToken(user._id, token);
-    await redis.set({
-        key: revoked,
-        value: 1,
-        ttl: 60 * 60 * 24 * 365,
-    });
+    const now = Math.floor(Date.now() / 1000);
+
+    // Revoke access token
+    const decodedAccess = jwt.decode(accessToken);
+    if (decodedAccess?.jti && decodedAccess?.exp) {
+        const ttl = decodedAccess.exp - now;
+        if (ttl > 0) {
+            await redis.set({
+                key: `revoked:access:${decodedAccess.jti}`,
+                value: 1,
+                ttl,
+            });
+        }
+    }
+
+    // Revoke refresh token
+    const decodedRefresh = jwt.decode(refreshToken);
+    if (decodedRefresh?.jti && decodedRefresh?.exp) {
+        const ttl = decodedRefresh.exp - now;
+        if (ttl > 0) {
+            await redis.set({
+                key: `revoked:refresh:${decodedRefresh.jti}`,
+                value: 1,
+                ttl,
+            });
+        }
+    }
 
     return { data: "Logged out" };
 };
