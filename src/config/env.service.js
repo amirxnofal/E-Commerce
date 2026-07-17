@@ -14,6 +14,10 @@ const googleAppPassword = process.env.GOOGLE_APP_PASSWORD;
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const redisUrl = process.env.REDIS_URL;
 
+const cloudinaryName = process.env.CLOUDINARY_CLOUD_NAME;
+const cloudinaryApiKey = process.env.CLOUDINARY_API_KEY;
+const cloudinaryApiSecret = process.env.CLOUDINARY_API_SECRET;
+
 export const env = {
     port,
     mongoose_url,
@@ -26,4 +30,7 @@ export const env = {
     googleClientId,
     serverUrl,
     redisUrl,
+    cloudinaryName,
+    cloudinaryApiKey,
+    cloudinaryApiSecret,
 };
