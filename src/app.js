@@ -14,6 +14,7 @@ import categoryRouter from "./modules/categories/category.route.js";
 import cartRouter from "./modules/cart/cart.route.js";
 import { RedisConnection } from "./database/redis/redis.js";
 import * as R from "./database/redis/redis.service.js";
+import { deleteExpiredAccounts } from "./common/Cron/node-corn.utils.js";
 
 export const bootstrap = async () => {
     const app = express();
@@ -23,13 +24,16 @@ export const bootstrap = async () => {
     await DatabaseConnection();
     await RedisConnection();
 
+    //! Cron : Delete Expired Accounts
+    await deleteExpiredAccounts();
+
     //* Check Server health
     app.get("/check-health", (req, res) => {
         res.json({ message: "Server is healthy..." });
     });
 
     //? For google login unblock
-    app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+    app.use(cors({ origin: "*", credentials: true }));
 
     //* App routes
     app.use("/auth", authRouter);
