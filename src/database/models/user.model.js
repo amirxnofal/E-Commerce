@@ -64,13 +64,16 @@ const userSchema = mongoose.Schema(
             },
         },
         address: [String],
+        deletedAt: {
+            type: Date,
+            default: null,
+        },
     },
     { timestamps: true },
 );
 userSchema.set("toJSON", {
     transform: (doc, ret) => {
         delete ret.password;
-        delete ret.otp;
         return ret;
     },
 });

@@ -5,6 +5,8 @@ import { env } from "../../config/env.service.js";
 import { uploadToCloudinary } from "../../common/utils/cloudinary.utils.js";
 import { defaultPublicId } from "../../common/Constant/cloudinary.constant.js";
 import cloudinary from "../../config/cloudinary.config.js";
+import jwt from "jsonwebtoken";
+import * as redis from "../../database/redis/redis.service.js";
 
 //!-----------------------------------------------------------------!//
 
@@ -82,17 +84,48 @@ export const updateUserPassword = async (userId, data) => {
 };
 //!-----------------------------------------------------------------!//
 //* delete user Service
-export const deleteUser = async (userId, password) => {
+export const deleteUser = async (userId, password, req) => {
     const user = await UserModel.findById(userId);
     if (!user || user.status !== "active")
-        e.NotFoundException({ message: "User not found" });
+        throw new e.NotFoundException({ message: "User not found" });
 
     const isMatched = await hash.CompareText(password, user.password);
-    if (!isMatched) e.BadRequestException({ message: "Wrong password" });
+    if (!isMatched)
+        throw new e.BadRequestException({ message: "Wrong password" });
 
     user.status = "deleted";
-
+    user.deletedAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     await user.save();
+
+    const authHeader = req.headers.authorization;
+    const accessToken = authHeader?.split(" ")[1];
+    const { refreshToken } = req.body;
+
+    const now = Math.floor(Date.now() / 1000);
+
+    const decodedAccess = jwt.decode(accessToken);
+    if (decodedAccess?.jti && decodedAccess?.exp) {
+        const ttl = decodedAccess.exp - now;
+        if (ttl > 0) {
+            await redis.set({
+                key: `revoked:access:${decodedAccess.jti}`,
+                value: 1,
+                ttl,
+            });
+        }
+    }
+
+    const decodedRefresh = jwt.decode(refreshToken);
+    if (decodedRefresh?.jti && decodedRefresh?.exp) {
+        const ttl = decodedRefresh.exp - now;
+        if (ttl > 0) {
+            await redis.set({
+                key: `revoked:refresh:${decodedRefresh.jti}`,
+                value: 1,
+                ttl,
+            });
+        }
+    }
 
     return { user };
 };

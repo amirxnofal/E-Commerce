@@ -64,7 +64,7 @@ export const Update_Password = async (req, res, next) => {
 //* delete user Controller
 export const Delete_User = async (req, res, next) => {
     try {
-        const result = await s.deleteUser(req.user._id, req.body.password);
+        const result = await s.deleteUser(req.user._id, req.body.password, req);
         return SuccessResponse({
             res,
             status: 200,

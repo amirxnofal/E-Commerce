@@ -44,6 +44,7 @@ export const deleteAccountSchema = Joi.object({
             "string.pattern.base":
                 "Password must contain at least one letter, one number and one special character",
         }),
+    refreshToken: Joi.string().required(),
 });
 
 export const changeRoleSchema = Joi.object({
