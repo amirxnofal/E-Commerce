@@ -1,13 +1,13 @@
 import { Router } from "express";
 import { Validation } from "../../common/middleware/validation.middleware.js";
-import { uploadUser } from "../../common/middleware/multer.middleware.js";
 import { Auth } from "../../common/middleware/auth.middleware.js";
 import * as role from "../../common/middleware/role.middleware.js";
 import * as c from "./user.controller.js";
 import * as sch from "./user.validation.js";
+import { upload } from "../../common/middleware/multer.middleware.js";
 const router = Router();
 
-//* Get user Route
+//* Get Profile Route
 router.get(
     "/profile",
     Auth,
@@ -28,7 +28,7 @@ router.patch(
 router.patch(
     "/profile-image",
     Auth,
-    uploadUser.single("profileImage"),
+    upload.single("profileImage"),
     role.authorize("user", "seller", "admin"),
     c.Update_Image,
 );

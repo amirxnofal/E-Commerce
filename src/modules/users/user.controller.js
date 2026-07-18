@@ -1,7 +1,7 @@
 import { SuccessResponse } from "../../common/responses/success.response.js";
 import * as s from "./user.service.js";
 
-//* Get user Controller
+//* Get Profile Controller
 export const Get_User = async (req, res, next) => {
     try {
         const result = await s.retriveUser(req.user);

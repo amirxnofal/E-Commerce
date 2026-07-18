@@ -2,13 +2,18 @@ import { UserModel } from "../../database/models/user.model.js";
 import * as e from "../../common/responses/error.response.js";
 import * as hash from "../../common/utils/hash.utils.js";
 import { env } from "../../config/env.service.js";
+import { uploadToCloudinary } from "../../common/utils/cloudinary.utils.js";
+import { defaultPublicId } from "../../common/Constant/cloudinary.constant.js";
+import cloudinary from "../../config/cloudinary.config.js";
 
 //!-----------------------------------------------------------------!//
-//* Get user Service
+
+//* Get Profile Service
 export const retriveUser = async (user) => {
     return { user };
 };
 //!-----------------------------------------------------------------!//
+
 //* Update user data Service
 export const updateUserData = async (user, data) => {
     const { fName, lName, email, address } = data;
@@ -27,17 +32,35 @@ export const updateUserData = async (user, data) => {
     return { user };
 };
 //!-----------------------------------------------------------------!//
+
 //* Update user image Service
 export const updateUserImage = async (user, file) => {
-    user.profileImage = file
-        ? `${env.serverUrl}/${file.path}`
-        : user.profileImage;
+    if (!file) e.BadRequestException({ message: "Must upload image" });
+
+    const oldImage = {
+        public_id: user.profileImage.public_id,
+        secure_url: user.profileImage.secure_url,
+    };
+
+    const uploadResult = await uploadToCloudinary(
+        file.path,
+        `users/${user._id}`,
+    );
+
+    user.profileImage = {
+        secure_url: uploadResult.secure_url,
+        public_id: uploadResult.public_id,
+    };
 
     await user.save();
+
+    if (oldImage.public_id !== defaultPublicId)
+        await cloudinary.uploader.destroy(oldImage.public_id);
 
     return { user };
 };
 //!-----------------------------------------------------------------!//
+
 //* Update user password Service
 export const updateUserPassword = async (userId, data) => {
     const { oldPassword, newPassword } = data;
@@ -47,7 +70,7 @@ export const updateUserPassword = async (userId, data) => {
         e.NotFoundException({ message: "User not found" });
 
     const isMatched = await hash.CompareText(oldPassword, user.password);
-    if (!isMatched) e.ConflictException({ message: "Wrong old password" });
+    if (!isMatched) e.BadRequestException({ message: "Wrong password" });
 
     const hashedPassword = await hash.HashText(newPassword);
 
@@ -73,6 +96,7 @@ export const deleteUser = async (userId, password) => {
 
     return { user };
 };
+
 //!-----------------------------------------------------------------!//
 //* Get all users Service
 export const retriveAllUsers = async () => {

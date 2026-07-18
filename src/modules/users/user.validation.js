@@ -7,7 +7,7 @@ export const updateUserSchema = Joi.object({
 
     email: Joi.string().email().optional(),
 
-    address: Joi.array().optional(),
+    address: Joi.string().optional(),
 });
 
 export const updatePasswordSchema = Joi.object({
