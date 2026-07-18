@@ -85,6 +85,7 @@ export const verifyEmail = async (data) => {
     if (!isExist) e.BadRequestException({ message: "Email not found" });
 
     const hashedOTP = await redis.get(`otp:${isExist._id}`);
+    if (!hashedOTP) e.BadRequestException({ message: "Invalid otp" });
 
     const isMatched = await hash.CompareText(otp, hashedOTP);
     if (!isMatched) e.BadRequestException({ message: "Invalid otp" });
@@ -183,12 +184,12 @@ export const forgotPassword = async (data) => {
 
     const mail = await SendEmail({
         to: email,
-        subject: "Use it to reset pasword",
+        subject: "Use it to reset password",
         otp,
     });
 
     if (!mail.accepted.includes(email))
-        e.ForbiddenException({ message: "Falied send OTP" });
+        e.ForbiddenException({ message: "Failed to send OTP" });
 
     await redis.set({
         key: `otp:${isExist._id}`,
@@ -208,6 +209,7 @@ export const resetPassword = async (data) => {
     if (!isExist) e.NotFoundException({ message: "Email not found!" });
 
     const hashedOTP = await redis.get(`otp:${isExist._id}`);
+    if (!hashedOTP) e.BadRequestException({ message: "OTP expired or invalid" });
 
     const isMatched = await hash.CompareText(otp, hashedOTP);
     if (!isMatched)
