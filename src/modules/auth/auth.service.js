@@ -38,7 +38,7 @@ export const register = async (data, file) => {
     });
 
     if (!mailSend.accepted.includes(email))
-        e.InternalServerError({
+        e.InternalServerErrorException({
             message: "Failed to send email",
         });
 
@@ -209,7 +209,8 @@ export const resetPassword = async (data) => {
     if (!isExist) e.NotFoundException({ message: "Email not found!" });
 
     const hashedOTP = await redis.get(`otp:${isExist._id}`);
-    if (!hashedOTP) e.BadRequestException({ message: "OTP expired or invalid" });
+    if (!hashedOTP)
+        e.BadRequestException({ message: "OTP expired or invalid" });
 
     const isMatched = await hash.CompareText(otp, hashedOTP);
     if (!isMatched)

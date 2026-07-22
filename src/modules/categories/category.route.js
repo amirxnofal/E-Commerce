@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { Validation } from "../../common/middleware/validation.middleware.js";
-import { uploadCategory } from "../../common/middleware/multer.middleware.js";
+import { upload } from "../../common/middleware/multer.middleware.js";
 import { Auth } from "../../common/middleware/auth.middleware.js";
 import * as role from "../../common/middleware/role.middleware.js";
 import * as c from "./category.controller.js";
@@ -20,7 +20,7 @@ router.post(
     "/",
     Auth,
     role.authorize("seller", "admin"),
-    uploadCategory.single("categoryImage"),
+    upload.single("categoryImage"),
     Validation(v.createCategorySchema),
     c.Create_Category,
 );
@@ -30,7 +30,7 @@ router.patch(
     "/:id",
     Auth,
     role.authorize("admin"),
-    uploadCategory.single("categoryImage"),
+    upload.single("categoryImage"),
     Validation(v.editCategorySchema),
     c.Edit_Category,
 );

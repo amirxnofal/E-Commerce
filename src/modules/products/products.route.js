@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { Validation } from "../../common/middleware/validation.middleware.js";
-import { uploadProduct } from "../../common/middleware/multer.middleware.js";
+import { upload } from "../../common/middleware/multer.middleware.js";
 import { Auth } from "../../common/middleware/auth.middleware.js";
 import * as role from "../../common/middleware/role.middleware.js";
 import * as c from "./products.controller.js";
@@ -30,7 +30,7 @@ router.post(
     "/",
     Auth,
     role.authorize("seller"),
-    uploadProduct.array("productImages"),
+    upload.array("productImages"),
     Validation(addProductSchema),
     c.Create_Product,
 );
@@ -40,7 +40,7 @@ router.patch(
     "/:id",
     Auth,
     role.authorize("seller"),
-    uploadProduct.array("productImages"),
+    upload.array("productImages"),
     Validation(editProductSchema),
     c.Update_Product,
 );

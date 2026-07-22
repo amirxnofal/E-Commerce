@@ -5,7 +5,7 @@ export const client = redis.createClient({ url: env.redisUrl });
 
 export const RedisConnection = async () => {
     try {
-        await client.on("error", (err) => {
+        client.on("error", (err) => {
             throw err;
         });
 
