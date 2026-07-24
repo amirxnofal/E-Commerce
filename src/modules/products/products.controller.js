@@ -74,7 +74,7 @@ export const Create_Product = async (req, res, next) => {
             res,
             status: 201,
             message: "Product created successfully",
-            data: result.products,
+            data: result,
         });
     } catch (error) {
         next(error);
