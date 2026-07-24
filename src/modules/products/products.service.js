@@ -1,8 +1,15 @@
 import { ProductModel } from "../../database/models/product.model.js";
 import { CategoryModel } from "../../database/models/category.model.js";
+import { uploadToCloudinary } from "../../common/utils/cloudinary.utils.js";
 import * as e from "../../common/responses/error.response.js";
 import { env } from "../../config/env.service.js";
 import fs from "fs";
+import cloudinary from "../../config/cloudinary.config.js";
+import {
+    addNewImages,
+    deleteOldImages,
+    rollbackUploadedImages,
+} from "./product.images.service.js";
 
 //!-----------------------------------------------------------------------------!//
 //* Get products Service
@@ -116,28 +123,59 @@ export const createProduct = async (seller, data, files) => {
     const isCategory = await CategoryModel.findById(category);
     if (!isCategory) e.NotFoundException({ message: "Category not found" });
 
-    const productImages = files?.length
-        ? files.map((img) => `${env.serverUrl}/${img.path}`)
-        : [];
+    const uploadedImages = [];
+    const failedImages = [];
+    if (files?.length) {
+        for (const file of files) {
+            try {
+                const uploadResult = await uploadToCloudinary(
+                    file.path,
+                    `users/${seller._id}/productsImages`,
+                );
 
-    const products = await ProductModel.create({
-        name,
-        description,
-        category,
-        price,
-        stock,
-        seller: seller._id,
-        productImages,
-        status: "active",
-    });
+                uploadedImages.push({
+                    public_id: uploadResult.public_id,
+                    secure_url: uploadResult.secure_url,
+                });
+            } catch (error) {
+                failedImages.push({
+                    fileName: file.originalname,
+                    cause: error.message,
+                });
+            }
+        }
+    }
+    if (uploadedImages.length === 0)
+        e.BadRequestException({ message: "Must upload 1 image atleast" });
+    let product;
+    try {
+        product = await ProductModel.create({
+            name,
+            description,
+            category,
+            price,
+            stock,
+            seller: seller._id,
+            productImages: uploadedImages,
+            status: "active",
+        });
+    } catch (error) {
+        await Promise.allSettled(
+            uploadedImages.map((img) =>
+                cloudinary.uploader.destroy(img.public_id),
+            ),
+        );
 
-    return { products };
+        throw error;
+    }
+
+    return { product, failedImages };
 };
 //!-----------------------------------------------------------------------------!//
 
 //* Update products Service
 export const editProduct = async (seller, productId, data, files) => {
-    const { name, description, category, price, stock, imageAction } = data;
+    const { name, description, category, price, stock, oldPublicIds } = data;
 
     const product = await ProductModel.findById(productId);
     if (!product) throw e.NotFoundException({ message: "Product not found!" });
@@ -158,28 +196,59 @@ export const editProduct = async (seller, productId, data, files) => {
         product.category = category;
     }
 
+    let uploadedImages = [];
     if (files?.length) {
-        const newImages = files.map((img) => `${env.serverUrl}/${img.path}`);
+        const addedImages = await addNewImages(seller, files);
+        uploadedImages = addedImages.uploadedImages;
+        uploadedImages.forEach((img) => {
+            product.productImages.push(img);
+        });
+    }
 
-        if (imageAction === "replace") {
-            if (product.productImages?.length) {
-                product.productImages.forEach((imgUrl) => {
-                    const filePath = imgUrl.replace(`${env.serverUrl}/`, "");
-                    fs.unlink(filePath, () => {});
-                });
-            }
-            product.productImages = newImages;
-        } else {
-            product.productImages = [
-                ...(product.productImages || []),
-                ...newImages,
-            ];
+    const originalImages = [...product.productImages];
+    const idsToDelete = oldPublicIds?.length ? oldPublicIds : [];
+
+    if (idsToDelete.length) {
+        const existingIds = new Set(originalImages.map((img) => img.public_id));
+        const invalidIds = idsToDelete.filter((id) => !existingIds.has(id));
+        
+        if (invalidIds.length) {
+            await rollbackUploadedImages(uploadedImages);
+            throw e.BadRequestException({
+                message: "Some image ids do not belong to this product",
+                extra: { invalidIds },
+            });
+        }
+
+        product.productImages = product.productImages.filter(
+            (img) => !idsToDelete.includes(img.public_id),
+        );
+    }
+
+    try {
+        await product.save();
+    } catch (error) {
+        await rollbackUploadedImages(uploadedImages);
+        throw error;
+    }
+
+    if (idsToDelete.length) {
+        const deletionResult = await deleteOldImages(
+            originalImages,
+            idsToDelete,
+        );
+
+        if (deletionResult.failedImages.length) {
+            console.error(
+                "Some old images failed to delete from Cloudinary:",
+                deletionResult.failedImages,
+            );
         }
     }
 
-    await product.save();
     return { product };
 };
+
 //!-----------------------------------------------------------------------------!//
 
 //* delete products Service
