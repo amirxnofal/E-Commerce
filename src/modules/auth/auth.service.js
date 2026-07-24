@@ -63,7 +63,7 @@ export const register = async (data, file) => {
     if (file) {
         const uploadResult = await uploadToCloudinary(
             file.path,
-            `users/${user._id}`,
+            `users/${user._id}/profileImages`,
         );
 
         user.profileImage = {

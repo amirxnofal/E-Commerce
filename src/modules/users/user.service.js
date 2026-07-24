@@ -46,7 +46,7 @@ export const updateUserImage = async (user, file) => {
 
     const uploadResult = await uploadToCloudinary(
         file.path,
-        `users/${user._id}`,
+        `users/${user._id}/profileImages`,
     );
 
     user.profileImage = {
