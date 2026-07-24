@@ -30,7 +30,7 @@ router.post(
     "/",
     Auth,
     role.authorize("seller"),
-    upload.array("productImages"),
+    upload.array("productImages", 5),
     Validation(addProductSchema),
     c.Create_Product,
 );
@@ -40,7 +40,7 @@ router.patch(
     "/:id",
     Auth,
     role.authorize("seller"),
-    upload.array("productImages"),
+    upload.array("productImages", 5),
     Validation(editProductSchema),
     c.Update_Product,
 );
